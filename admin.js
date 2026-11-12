@@ -82,44 +82,6 @@
     finally{submit.disabled=false;}
   });
 
-  function getDriveFolderId(value) {
-    try { const u=new URL(value); if(!/(^|\.)drive\.google\.com$/.test(u.hostname)) return ''; const m=u.pathname.match(/\/folders\/([a-zA-Z0-9_-]+)/); return (m&&m[1])||u.searchParams.get('id')||''; }
-    catch (_) { return ''; }
-  }
-  async function readDriveFolder(folderId) {
-    const key=window.GOOGLE_DRIVE_API_KEY;
-    if(!key || key.includes('TEMPEL_')) throw new Error('API Key belum diisi di google-drive-config.js.');
-    let token='', files=[];
-    do {
-      const q=encodeURIComponent("'" + folderId + "' in parents and trashed=false");
-      const url='https://www.googleapis.com/drive/v3/files?q='+q+'&pageSize=100&orderBy=name&fields=nextPageToken,files(id,name,mimeType)&key='+encodeURIComponent(key)+(token?'&pageToken='+encodeURIComponent(token):'');
-      const response=await fetch(url); const data=await response.json();
-      if(!response.ok) throw new Error(data.error?.message || 'Google Drive API gagal membaca folder.');
-      files=files.concat((data.files||[]).filter(f=>String(f.mimeType||'').startsWith('video/')));
-      token=data.nextPageToken||'';
-    } while(token);
-    return files;
-  }
-  $('drive-import').addEventListener('click',async()=>{
-    const animeId=$('drive-anime').value, folderId=getDriveFolderId($('drive-folder').value.trim()), status=$('drive-message'), button=$('drive-import');
-    if(!animeId){status.textContent='Pilih anime terlebih dahulu.';return;}
-    if(!folderId){status.textContent='Link folder tidak valid. Salin link folder Google Drive.';return;}
-    button.disabled=true;status.textContent='Sedang membaca folder Google Drive...';
-    try {
-      const files=await readDriveFolder(folderId);
-      if(!files.length){status.textContent='Tidak ditemukan file video. Pastikan folder dan videonya dapat diakses siapa saja yang memiliki link.';return;}
-      const payload=files.map((f,index)=>{
-        const match=f.name.match(/(?:episode|eps?|ep)[ ._-]*(\d+)/i)||f.name.match(/(\d+)/);
-        const number=match?Number(match[1]):index+1;
-        return {anime_id:Number(animeId),episode_number:number,title:f.name.replace(/\.[^.]+$/,''),drive_file_id:f.id,video_url:'https://drive.google.com/file/d/'+encodeURIComponent(f.id)+'/preview'};
-      });
-      const {error}=await db.from('episodes').upsert(payload,{onConflict:'anime_id,drive_file_id'});
-      if(error) throw error;
-      status.textContent=files.length+' video berhasil diimpor sebagai episode. Muat ulang website untuk melihat hasilnya.';
-    } catch(err) { status.textContent=err.message||'Gagal mengimpor folder.'; }
-    finally {button.disabled=false;}
-  });
-
   db.auth.onAuthStateChange(()=>{setTimeout(checkSession,0);});
   checkSession();
 })();
