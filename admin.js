@@ -10,14 +10,7 @@
   function normalizeVideoUrl(value) {
     if (!value) return null;
     const url = new URL(value);
-    if (url.hostname === 'drive.google.com' || url.hostname === 'www.drive.google.com') {
-      let id = '';
-      const pathMatch = url.pathname.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-      if (pathMatch) id = pathMatch[1];
-      if (!id) id = url.searchParams.get('id') || '';
-      if (!id) throw new Error('Link Google Drive tidak dikenali. Gunakan link berbentuk drive.google.com/file/d/FILE_ID/view.');
-      return 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/preview';
-    }
+    if (/(^|\\.)drive\\.google\\.com$/i.test(url.hostname)) throw new Error('Link Google Drive sudah tidak didukung. Gunakan link video Dropbox atau URL video langsung.');
     if (!['http:', 'https:'].includes(url.protocol)) throw new Error('URL video harus menggunakan HTTP atau HTTPS.');
     return url.href;
   }
@@ -46,7 +39,6 @@
     const {data,error}=await db.from('anime').select('*').order('created_at',{ascending:false});
     if(error){$('admin-list').textContent=error.message;return;}
     rows=data||[];
-    const driveSelect=$('drive-anime'); if(driveSelect) driveSelect.innerHTML='<option value="">Pilih anime...</option>'+rows.map(a=>`<option value="${esc(a.id)}">${esc(a.title)}</option>`).join('');
     $('admin-list').innerHTML=rows.length?rows.map(a=>`<div class="admin-item"><img class="admin-thumb" src="${esc(a.poster_url||'')}" alt="" onerror="this.style.visibility='hidden'"><div class="admin-item-info"><strong>${esc(a.title)}</strong><small class="muted">${esc(a.genre||'Anime')}</small></div><div class="admin-actions"><button class="button secondary" data-edit="${esc(a.id)}">Edit</button><button class="button danger" data-delete="${esc(a.id)}">Hapus</button></div></div>`).join(''):'<p class="muted">Belum ada anime. Tambahkan melalui formulir.</p>';
     $('admin-list').querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>edit(b.dataset.edit)));
     $('admin-list').querySelectorAll('[data-delete]').forEach(b=>b.addEventListener('click',()=>removeAnime(b.dataset.delete)));
