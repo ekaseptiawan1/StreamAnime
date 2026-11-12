@@ -13,14 +13,13 @@
   async function load(){
     try{
       const db=window.supabase.createClient(window.SUPABASE_URL,window.SUPABASE_ANON_KEY);
-      const {data,error}=await db.from('site_banners').select('image_url,target_url,is_active').eq('id',1).eq('is_active',true).maybeSingle();
-      if(error||!data)return;
-      const image=imageUrl(data.image_url),target=validShopee(data.target_url);
-      if(!image||!target)return;
-      slot.innerHTML='<a class="affiliate-banner-link" href="'+esc(target)+'" target="_blank" rel="sponsored nofollow noopener noreferrer" aria-label="Lihat produk di Shopee"><img src="'+esc(image)+'" alt="Produk rekomendasi Shopee Affiliate" loading="lazy" referrerpolicy="no-referrer"><span class="affiliate-banner-label">LIHAT PRODUK DI SHOPEE ↗</span></a>';
+      const {data,error}=await db.from('site_banners').select('id,title,image_url,target_url,is_active').eq('is_active',true).order('created_at',{ascending:false});
+      if(error||!data||!data.length)return;
+      const products=data.map(item=>({title:item.title||'Produk Shopee',image:imageUrl(item.image_url),target:validShopee(item.target_url)})).filter(item=>item.image&&item.target);
+      if(!products.length)return;
+      slot.innerHTML='<div class="affiliate-banner-heading"><span>REKOMENDASI PRODUK</span><small>Belanja melalui Shopee</small></div><div class="affiliate-products">'+products.map(item=>'<a class="affiliate-product" href="'+esc(item.target)+'" target="_blank" rel="sponsored nofollow noopener noreferrer"><img src="'+esc(item.image)+'" alt="'+esc(item.title)+'" loading="lazy" referrerpolicy="no-referrer"><span class="affiliate-product-info"><strong>'+esc(item.title)+'</strong><small>Lihat di Shopee ↗</small></span></a>').join('')+'</div>';
       slot.hidden=false;
-      const img=slot.querySelector('img');
-      img.addEventListener('error',()=>{slot.hidden=true;},{once:true});
+      slot.querySelectorAll('img').forEach(img=>img.addEventListener('error',()=>{img.closest('.affiliate-product')?.remove();if(!slot.querySelector('.affiliate-product'))slot.hidden=true;},{once:true}));
     }catch(_){}
   }
   load();
