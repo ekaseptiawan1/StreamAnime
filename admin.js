@@ -7,6 +7,20 @@
   if (!configured || !window.supabase) { $('login-message').textContent = 'Konfigurasi Supabase belum diisi. Lengkapi supabase-config.js terlebih dahulu.'; $('login-form').querySelector('button').disabled = true; return; }
   db = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
   function message(text, error=false) { $('form-message').textContent = text; $('form-message').style.color = error ? '#ff9aaa' : '#c4b5fd'; }
+  function normalizeVideoUrl(value) {
+    if (!value) return null;
+    const url = new URL(value);
+    if (url.hostname === 'drive.google.com' || url.hostname === 'www.drive.google.com') {
+      let id = '';
+      const pathMatch = url.pathname.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (pathMatch) id = pathMatch[1];
+      if (!id) id = url.searchParams.get('id') || '';
+      if (!id) throw new Error('Link Google Drive tidak dikenali. Gunakan link berbentuk drive.google.com/file/d/FILE_ID/view.');
+      return 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/preview';
+    }
+    if (!['http:', 'https:'].includes(url.protocol)) throw new Error('URL video harus menggunakan HTTP atau HTTPS.');
+    return url.href;
+  }
   function reset() { form.reset(); $('anime-id').value=''; $('form-title').textContent='Tambah Anime'; $('upload-progress').textContent=''; }
   async function checkSession() {
     const {data:{session}} = await db.auth.getSession();
@@ -64,7 +78,7 @@
     e.preventDefault();if(!currentUser)return;
     const submit=form.querySelector('[type=submit]');submit.disabled=true;message('Menyimpan...');
     try{
-      let videoUrl=$('video-url').value.trim()||null;
+      let videoUrl=normalizeVideoUrl($('video-url').value.trim());
       const file=$('video-file').files[0];if(file)videoUrl=await uploadVideo(file);
       const payload={title:$('title').value.trim(),description:$('description').value.trim(),poster_url:$('poster').value.trim()||null,genre:$('genre').value.trim()||null,video_url:videoUrl};
       const id=$('anime-id').value;
