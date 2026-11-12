@@ -5,7 +5,8 @@
   const id=new URLSearchParams(location.search).get('id');
   const configured=window.SUPABASE_URL&&!window.SUPABASE_URL.includes('YOUR_PROJECT_ID')&&window.SUPABASE_ANON_KEY&&!window.SUPABASE_ANON_KEY.includes('YOUR_');
   const fmt=t=>{if(!Number.isFinite(t))return '0:00';const s=Math.floor(t);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
-  function dropboxDirectUrl(url){try{const u=new URL(url);if(!/(^|\\.)dropbox\\.com$/i.test(u.hostname))return url;u.searchParams.set('dl','1');u.searchParams.delete('raw');return u.toString();}catch(_){return url;}}
+  function isDriveUrl(url){try{const host=new URL(url).hostname;return host==='drive.google.com'||host.endsWith('.drive.google.com');}catch(_){return false;}}
+  function dropboxDirectUrl(url){try{const u=new URL(url);if(!(u.hostname==='dropbox.com'||u.hostname.endsWith('.dropbox.com')))return url;u.searchParams.set('dl','1');u.searchParams.delete('raw');return u.toString();}catch(_){return url;}}
   function videoMarkup(title,url){
     const playableUrl=dropboxDirectUrl(url);
     return '<div class="player-stage custom-stage"><video class="stream-video" playsinline preload="metadata" src="'+esc(playableUrl)+'"></video><button class="center-play" type="button" aria-label="Putar video">▶</button><div class="custom-controls"><div class="seek-row"><input class="seek-bar" type="range" min="0" max="1000" value="0" aria-label="Posisi video"><span class="time-display">0:00 / 0:00</span></div><div class="control-row"><button class="control-play" type="button" aria-label="Putar atau jeda">▶</button><button class="skip-back" type="button" aria-label="Mundur 10 detik">↶ 10</button><button class="skip-forward" type="button" aria-label="Maju 10 detik">10 ↷</button><button class="mute-button" type="button" aria-label="Bisukan">🔊</button><input class="volume-bar" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume"><select class="speed-select" aria-label="Kecepatan video"><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option></select><button class="fullscreen-button" type="button" aria-label="Layar penuh">⛶</button></div></div></div>';
@@ -55,8 +56,8 @@
     const {data:anime,error}=await db.from('anime').select('*').eq('id',id).single();
     if(error||!anime){$('watch-status').textContent='Anime tidak ditemukan atau gagal dimuat.';return;}
     const {data:episodes,error:episodeError}=await db.from('episodes').select('*').eq('anime_id',anime.id).order('episode_number',{ascending:true});
-    let list=(!episodeError&&episodes&&episodes.length)?episodes:[];
-    if(!list.length&&anime.video_url)list=[{title:anime.title,video_url:anime.video_url,episode_number:1}];
+    let list=(!episodeError&&episodes&&episodes.length)?episodes.filter(ep=>!isDriveUrl(ep.video_url)):[];
+    if(!list.length&&anime.video_url&&!isDriveUrl(anime.video_url))list=[{title:anime.title,video_url:anime.video_url,episode_number:1}];
     episodeList=list;
     if(!list.length){$('watch-status').textContent='Video belum tersedia untuk anime ini.';return;}
     $('watch-status').hidden=true;$('watch-layout').hidden=false;
