@@ -72,15 +72,22 @@
 /* Indikator saat video mengambil data dan mulai diputar */
 .player-loading{position:absolute;z-index:2;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:#0009;color:#fff;font-size:13px;pointer-events:none;transition:opacity .18s}.player-loading.is-hidden{opacity:0;visibility:hidden}.loading-spinner{width:34px;height:34px;border:3px solid #ffffff55;border-top-color:#b7a5ff;border-radius:50%;animation:player-spin .75s linear infinite}@keyframes player-spin{to{transform:rotate(360deg)}}
 
-/* Banner Shopee Affiliate global */
+/* Etalase banyak produk Shopee Affiliate */
 .affiliate-banner{max-width:1180px;margin:18px auto;padding:0 18px}
 .affiliate-banner[hidden]{display:none}
-.affiliate-banner-link{position:relative;display:block;overflow:hidden;border:1px solid var(--line);border-radius:13px;background:var(--panel);box-shadow:0 8px 28px #0003}
-.affiliate-banner-link img{display:block;width:100%;max-height:210px;min-height:90px;object-fit:cover}
-.affiliate-banner-label{position:absolute;right:12px;bottom:12px;padding:8px 12px;border-radius:8px;background:#ee4d2d;color:white;font-size:11px;font-weight:700;letter-spacing:.3px}
+.affiliate-banner-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
+.affiliate-banner-heading span{font:700 14px 'Space Grotesk';letter-spacing:.7px}
+.affiliate-banner-heading small{color:var(--muted);font-size:11px}
+.affiliate-products{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(145px,190px);gap:12px;overflow-x:auto;padding:2px 2px 12px;scroll-snap-type:x mandatory}
+.affiliate-product{min-width:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--panel);scroll-snap-align:start;transition:transform .2s,border-color .2s}
+.affiliate-product:hover{transform:translateY(-3px);border-color:#ee4d2d}
+.affiliate-product img{display:block;width:100%;height:150px;object-fit:cover;background:var(--panel2)}
+.affiliate-product-info{display:flex;flex-direction:column;gap:6px;padding:10px}
+.affiliate-product-info strong{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.affiliate-product-info small{font-size:11px;color:#ff8c75;font-weight:700}
 .affiliate-admin-card{margin-top:22px}
-.affiliate-admin-card .form-card{max-width:680px}
+.affiliate-layout{align-items:start}
 .affiliate-preview{width:100%;max-width:420px;max-height:190px;object-fit:contain;object-position:left center;border-radius:9px;background:var(--panel2)}
 .affiliate-toggle{display:flex;align-items:center;gap:10px;font-size:13px;color:#d9dbea}
 .affiliate-toggle input{width:18px;height:18px;accent-color:var(--accent)}
-@media(max-width:700px){.affiliate-banner{margin:12px auto;padding:0 12px}.affiliate-banner-link img{max-height:145px}.affiliate-banner-label{right:8px;bottom:8px;font-size:10px;padding:7px 9px}}
+@media(max-width:700px){.affiliate-banner{margin:12px auto;padding:0 12px}.affiliate-products{grid-auto-columns:145px;gap:10px}.affiliate-product img{height:135px}.affiliate-banner-heading span{font-size:12px}}
