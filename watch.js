@@ -17,7 +17,8 @@
     const toggle=()=>video.paused?video.play().catch(()=>{}):video.pause();
     play.addEventListener('click',toggle);center.addEventListener('click',toggle);video.addEventListener('click',toggle);
     const update=()=>{const playing=!video.paused;play.textContent=playing?'❚❚':'▶';center.textContent=playing?'':'▶';center.hidden=playing;time.textContent=fmt(video.currentTime)+' / '+fmt(video.duration);seek.value=video.duration?String(video.currentTime/video.duration*1000):'0';mute.textContent=video.muted||video.volume===0?'🔇':'🔊';};
-    ['play','pause','timeupdate','loadedmetadata','durationchange','volumechange','ended'].forEach(e=>video.addEventListener(e,update));\n    video.addEventListener('error',()=>{const note=stage.querySelector('.player-error');if(note){note.hidden=false;note.textContent='Video tidak dapat diputar (kode '+(video.error?.code||'tidak diketahui')+'). Coba link Dropbox publik dengan raw=1, atau gunakan URL MP4 langsung.';}});
+    ['play','pause','timeupdate','loadedmetadata','durationchange','volumechange','ended'].forEach(e=>video.addEventListener(e,update));
+    video.addEventListener('error',()=>{const note=stage.querySelector('.player-error');if(note){note.hidden=false;note.textContent='Video tidak dapat diputar (kode '+(video.error?.code||'tidak diketahui')+'). Coba link Dropbox publik dengan raw=1, atau gunakan URL MP4 langsung.';}});
     seek.addEventListener('input',()=>{if(video.duration)video.currentTime=Number(seek.value)/1000*video.duration;});
     stage.querySelector('.skip-back').addEventListener('click',()=>video.currentTime=Math.max(0,video.currentTime-10));
     stage.querySelector('.skip-forward').addEventListener('click',()=>video.currentTime=Math.min(video.duration||Infinity,video.currentTime+10));
