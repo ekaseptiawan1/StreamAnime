@@ -4,7 +4,7 @@
   const loginPanel = $('login-panel'), dashboard = $('dashboard'), form = $('anime-form');
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let db = null, currentUser = null, rows = [];
-  const AFFILIATE_ID = 1;
+  let affiliateRows = [];
   function normalizeAffiliateImage(value) {
     if (!value) throw new Error('Masukkan URL foto produk.');
     const u = new URL(value);
@@ -27,25 +27,47 @@
     try { const src=normalizeAffiliateImage(value);img.onload=()=>{img.hidden=false;note.hidden=true;};img.onerror=()=>{img.hidden=true;note.hidden=false;note.textContent='Foto tidak bisa dimuat. Pastikan URL gambar publik.';};img.src=src; }
     catch(err){img.hidden=true;note.hidden=false;note.textContent=err.message;}
   }
+  function resetAffiliateForm() {
+    $('affiliate-form').reset();$('affiliate-id').value='';$('affiliate-form-title').textContent='Tambah Produk Affiliate';$('affiliate-active').checked=true;updateAffiliatePreview();
+  }
   async function loadAffiliateSettings() {
-    const {data,error}=await db.from('site_banners').select('*').eq('id',AFFILIATE_ID).maybeSingle();
-    if(error){$('affiliate-message').textContent='Tabel banner belum siap. Jalankan SQL migrasi affiliate terlebih dahulu.';return;}
-    $('affiliate-image').value=data?.image_url||'';
-    $('affiliate-target').value=data?.target_url||'';
-    $('affiliate-active').checked=data?.is_active??true;
-    updateAffiliatePreview();
+    $('affiliate-list').innerHTML='<p class="muted">Memuat produk...</p>';
+    const {data,error}=await db.from('site_banners').select('*').order('created_at',{ascending:false});
+    if(error){$('affiliate-list').textContent='Gagal memuat daftar. Pastikan SQL migrasi produk affiliate sudah dijalankan: '+error.message;return;}
+    affiliateRows=data||[];
+    $('affiliate-list').innerHTML=affiliateRows.length?affiliateRows.map(item=>'<div class="admin-item"><img class="admin-thumb" src="'+esc(normalizeAffiliateImageSafe(item.image_url))+'" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility=\'hidden\'"><div class="admin-item-info"><strong>'+esc(item.title||'Produk Shopee')+'</strong><small class="muted">'+(item.is_active?'Aktif di website':'Disembunyikan')+'</small></div><div class="admin-actions"><button class="button secondary" type="button" data-aff-edit="'+esc(item.id)+'">Edit</button><button class="button danger" type="button" data-aff-delete="'+esc(item.id)+'">Hapus</button></div></div>').join(''):'<p class="muted">Belum ada produk affiliate. Tambahkan melalui formulir.</p>';
+    $('affiliate-list').querySelectorAll('[data-aff-edit]').forEach(b=>b.addEventListener('click',()=>editAffiliate(b.dataset.affEdit)));
+    $('affiliate-list').querySelectorAll('[data-aff-delete]').forEach(b=>b.addEventListener('click',()=>removeAffiliate(b.dataset.affDelete)));
+  }
+  function normalizeAffiliateImageSafe(value){try{return normalizeAffiliateImage(value);}catch(_){return '';}}
+  function editAffiliate(id) {
+    const item=affiliateRows.find(x=>String(x.id)===String(id));if(!item)return;
+    $('affiliate-id').value=item.id;$('affiliate-title').value=item.title||'';$('affiliate-image').value=item.image_url||'';$('affiliate-target').value=item.target_url||'';$('affiliate-active').checked=!!item.is_active;$('affiliate-form-title').textContent='Edit Produk Affiliate';updateAffiliatePreview();
+    $('affiliate-message').textContent='Ubah data lalu tekan Simpan Produk Affiliate.';
+    $('affiliate-form').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  async function removeAffiliate(id) {
+    const item=affiliateRows.find(x=>String(x.id)===String(id));if(!item||!confirm('Hapus produk affiliate "'+(item.title||'Produk Shopee')+'"?'))return;
+    const {error}=await db.from('site_banners').delete().eq('id',id);
+    if(error){alert('Gagal menghapus produk: '+error.message);return;}
+    if(String($('affiliate-id').value)===String(id))resetAffiliateForm();
+    await loadAffiliateSettings();
   }
   $('affiliate-image').addEventListener('input',updateAffiliatePreview);
+  $('affiliate-reset').addEventListener('click',resetAffiliateForm);
+  $('affiliate-refresh').addEventListener('click',loadAffiliateSettings);
   $('affiliate-form').addEventListener('submit',async e=>{
     e.preventDefault();
     const button=$('affiliate-form').querySelector('[type=submit]');
-    button.disabled=true;$('affiliate-message').textContent='Menyimpan banner...';
+    button.disabled=true;$('affiliate-message').textContent='Menyimpan produk...';
     try {
-      const payload={id:AFFILIATE_ID,image_url:normalizeAffiliateImage($('affiliate-image').value.trim()),target_url:normalizeShopeeUrl($('affiliate-target').value.trim()),is_active:$('affiliate-active').checked,updated_at:new Date().toISOString()};
-      const {error}=await db.from('site_banners').upsert(payload,{onConflict:'id'});
-      if(error)throw error;
-      $('affiliate-message').textContent='Banner Shopee Affiliate berhasil disimpan.';
-    } catch(err) {$('affiliate-message').textContent=err.message||'Gagal menyimpan banner.';}
+      const payload={title:$('affiliate-title').value.trim()||'Produk Shopee',image_url:normalizeAffiliateImage($('affiliate-image').value.trim()),target_url:normalizeShopeeUrl($('affiliate-target').value.trim()),is_active:$('affiliate-active').checked,updated_at:new Date().toISOString()};
+      const id=$('affiliate-id').value;
+      const result=id?await db.from('site_banners').update(payload).eq('id',id):await db.from('site_banners').insert(payload);
+      if(result.error)throw result.error;
+      $('affiliate-message').textContent='Produk affiliate berhasil disimpan.';
+      resetAffiliateForm();await loadAffiliateSettings();
+    } catch(err) {$('affiliate-message').textContent=err.message||'Gagal menyimpan produk.';}
     finally {button.disabled=false;}
   });
   if (!configured || !window.supabase) { $('login-message').textContent = 'Konfigurasi Supabase belum diisi. Lengkapi supabase-config.js terlebih dahulu.'; $('login-form').querySelector('button').disabled = true; return; }
