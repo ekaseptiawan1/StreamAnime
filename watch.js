@@ -32,11 +32,18 @@
       else if(stage.requestFullscreen){await stage.requestFullscreen();if(screen.orientation&&screen.orientation.lock){try{await screen.orientation.lock('landscape');}catch(_){}}}
     }catch(_){const v=stage.querySelector('video');if(v&&v.webkitEnterFullscreen)v.webkitEnterFullscreen();else alert('Layar penuh tidak didukung browser ini.');}
   }
-  function showEpisode(ep,index){
+  let episodeList=[];
+  let currentIndex=0;
+  function showEpisode(ep,index,autoplay=false){
+    currentIndex=index;
     $('watch-player').innerHTML=videoMarkup(ep.title,ep.video_url);
     const stage=$('watch-player').querySelector('.player-stage');
     stage.querySelector('.fullscreen-button').addEventListener('click',()=>toggleFullscreen(stage));
     setupCustom(stage);
+    const nextButton=$('next-episode');
+    if(nextButton){nextButton.disabled=index>=episodeList.length-1;nextButton.textContent=nextButton.disabled?'Episode Terakhir':'Episode Selanjutnya  →';}
+    const video=stage.querySelector('video');
+    if(video){video.addEventListener('ended',()=>{if(currentIndex<episodeList.length-1)showEpisode(episodeList[currentIndex+1],currentIndex+1,true);});if(autoplay)video.play().catch(()=>{});}
     $('watch-title').textContent=ep.title||('Episode '+(index+1));
     document.querySelectorAll('.watch-episode').forEach((b,i)=>b.classList.toggle('active',i===index));
     document.title=(ep.title||'Menonton')+' — StreamAnime';
@@ -51,10 +58,12 @@
     const {data:episodes,error:episodeError}=await db.from('episodes').select('*').eq('anime_id',anime.id).order('episode_number',{ascending:true});
     let list=(!episodeError&&episodes&&episodes.length)?episodes:[];
     if(!list.length&&anime.video_url)list=[{title:anime.title,video_url:anime.video_url,episode_number:1}];
+    episodeList=list;
     if(!list.length){$('watch-status').textContent='Video belum tersedia untuk anime ini.';return;}
     $('watch-status').hidden=true;$('watch-layout').hidden=false;
     $('watch-episodes').innerHTML=list.map((ep,i)=>'<button class="watch-episode" type="button" data-index="'+i+'"><span class="episode-number">'+esc(ep.episode_number||i+1)+'</span><span>'+esc(ep.title||('Episode '+(i+1)))+'</span><span class="episode-play">▶</span></button>').join('');
     $('watch-episodes').querySelectorAll('button').forEach((button,i)=>button.addEventListener('click',()=>showEpisode(list[i],i)));
+    $('next-episode').addEventListener('click',()=>{if(currentIndex<episodeList.length-1)showEpisode(episodeList[currentIndex+1],currentIndex+1,true);});
     $('watch-title').textContent=anime.title;$('watch-description').textContent=anime.description||anime.genre||'';
     showEpisode(list[0],0);
   }
