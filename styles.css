@@ -36,3 +36,28 @@
 .player-stage:fullscreen iframe,.player-stage:fullscreen video{width:100%;height:100%;object-fit:contain}
 .player-stage:fullscreen .fullscreen-button{top:max(14px,env(safe-area-inset-top));right:max(14px,env(safe-area-inset-right))}
 @media(max-width:600px){.fullscreen-button{top:8px;right:8px;padding:8px 10px}.fullscreen-button span{display:inline}}
+
+
+/* Pemutar kustom bergaya layanan streaming */
+.player-stage.custom-stage{position:relative;width:100%;height:100%;background:#000;overflow:hidden}
+.custom-stage .stream-video{width:100%;height:100%;display:block;object-fit:contain;background:#000;cursor:pointer}
+.custom-controls{position:absolute;left:0;right:0;bottom:0;padding:35px 14px 12px;background:linear-gradient(transparent,#000d);color:#fff;opacity:1;transition:opacity .2s}
+.custom-stage:hover .custom-controls,.custom-stage:focus-within .custom-controls{opacity:1}
+.seek-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.seek-bar{flex:1;min-width:0;height:5px;accent-color:#a78bfa;cursor:pointer;padding:0}
+.time-display{font-size:11px;color:#eee;white-space:nowrap;font-variant-numeric:tabular-nums}
+.control-row{display:flex;align-items:center;gap:10px}
+.control-row button{border:0;background:transparent;color:white;font-size:17px;padding:5px;cursor:pointer}
+.control-row button:hover{color:#c4b5fd}
+.control-row .skip-back,.control-row .skip-forward{font-size:13px;white-space:nowrap}
+.volume-bar{width:75px;height:4px;padding:0;accent-color:#a78bfa}
+.speed-select{margin-left:auto;background:#171a24;color:white;border:1px solid #555;border-radius:6px;padding:5px;font-size:12px}
+.center-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:58px;height:58px;border:0;border-radius:50%;background:#a78bfae8;color:#151020;font-size:23px;cursor:pointer;display:grid;place-items:center}
+.center-play[hidden]{display:none}
+.player-stage:fullscreen,.player-stage:fullscreen .stream-video{width:100vw;height:100vh;aspect-ratio:auto}
+.player-stage:fullscreen .custom-controls{padding-bottom:max(16px,env(safe-area-inset-bottom))}
+.player-stage:fullscreen .fullscreen-button{color:#fff}
+.drive-stage{position:relative}
+.drive-stage iframe{width:100%;height:100%;border:0}
+.drive-note{position:absolute;bottom:5px;left:8px;color:#ffffff99;font-size:10px;pointer-events:none}
+@media(max-width:520px){.custom-controls{padding:28px 8px 8px}.control-row{gap:5px}.volume-bar{width:48px}.control-row button{font-size:15px}.time-display{font-size:10px}.speed-select{font-size:11px;padding:4px}}
