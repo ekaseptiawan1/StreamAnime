@@ -17,6 +17,7 @@
   function posterDisplayUrl(value) { try { return normalizePosterUrl(value) || ''; } catch (_) { return ''; } }
   function updatePosterPreview() {
     const input=$('poster').value.trim(), img=$('poster-preview'), note=$('poster-preview-message');
+    img.referrerPolicy='no-referrer';
     if(!input){img.hidden=true;img.removeAttribute('src');note.hidden=false;note.textContent='Masukkan link gambar untuk melihat preview.';return;}
     try { const src=normalizePosterUrl(input); img.onload=()=>{img.hidden=false;note.hidden=true;}; img.onerror=()=>{img.hidden=true;note.hidden=false;note.textContent='Gambar tidak bisa dimuat. Pastikan link publik dan mengarah langsung ke file gambar.';}; img.src=src; }
     catch(err){img.hidden=true;note.hidden=false;note.textContent=err.message;}
