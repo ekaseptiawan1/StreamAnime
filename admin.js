@@ -4,6 +4,50 @@
   const loginPanel = $('login-panel'), dashboard = $('dashboard'), form = $('anime-form');
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let db = null, currentUser = null, rows = [];
+  const AFFILIATE_ID = 1;
+  function normalizeAffiliateImage(value) {
+    if (!value) throw new Error('Masukkan URL foto produk.');
+    const u = new URL(value);
+    if (!['http:','https:'].includes(u.protocol)) throw new Error('URL foto harus HTTP atau HTTPS.');
+    if (u.hostname === 'dropbox.com' || u.hostname.endsWith('.dropbox.com')) { u.searchParams.set('raw','1'); u.searchParams.delete('dl'); }
+    return u.href;
+  }
+  function normalizeShopeeUrl(value) {
+    if (!value) throw new Error('Masukkan link Shopee Affiliate.');
+    const u = new URL(value);
+    if (!['http:','https:'].includes(u.protocol)) throw new Error('Link tujuan harus HTTP atau HTTPS.');
+    const host = u.hostname.toLowerCase();
+    if (!(host === 'shopee.co.id' || host.endsWith('.shopee.co.id') || host === 'shope.ee')) throw new Error('Gunakan link Shopee Affiliate (shopee.co.id atau shope.ee).');
+    return u.href;
+  }
+  function updateAffiliatePreview() {
+    const value=$('affiliate-image').value.trim(),img=$('affiliate-preview'),note=$('affiliate-preview-message');
+    img.referrerPolicy='no-referrer';
+    if(!value){img.hidden=true;img.removeAttribute('src');note.hidden=false;note.textContent='Masukkan URL foto produk.';return;}
+    try { const src=normalizeAffiliateImage(value);img.onload=()=>{img.hidden=false;note.hidden=true;};img.onerror=()=>{img.hidden=true;note.hidden=false;note.textContent='Foto tidak bisa dimuat. Pastikan URL gambar publik.';};img.src=src; }
+    catch(err){img.hidden=true;note.hidden=false;note.textContent=err.message;}
+  }
+  async function loadAffiliateSettings() {
+    const {data,error}=await db.from('site_banners').select('*').eq('id',AFFILIATE_ID).maybeSingle();
+    if(error){$('affiliate-message').textContent='Tabel banner belum siap. Jalankan SQL migrasi affiliate terlebih dahulu.';return;}
+    $('affiliate-image').value=data?.image_url||'';
+    $('affiliate-target').value=data?.target_url||'';
+    $('affiliate-active').checked=data?.is_active??true;
+    updateAffiliatePreview();
+  }
+  $('affiliate-image').addEventListener('input',updateAffiliatePreview);
+  $('affiliate-form').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const button=$('affiliate-form').querySelector('[type=submit]');
+    button.disabled=true;$('affiliate-message').textContent='Menyimpan banner...';
+    try {
+      const payload={id:AFFILIATE_ID,image_url:normalizeAffiliateImage($('affiliate-image').value.trim()),target_url:normalizeShopeeUrl($('affiliate-target').value.trim()),is_active:$('affiliate-active').checked,updated_at:new Date().toISOString()};
+      const {error}=await db.from('site_banners').upsert(payload,{onConflict:'id'});
+      if(error)throw error;
+      $('affiliate-message').textContent='Banner Shopee Affiliate berhasil disimpan.';
+    } catch(err) {$('affiliate-message').textContent=err.message||'Gagal menyimpan banner.';}
+    finally {button.disabled=false;}
+  });
   if (!configured || !window.supabase) { $('login-message').textContent = 'Konfigurasi Supabase belum diisi. Lengkapi supabase-config.js terlebih dahulu.'; $('login-form').querySelector('button').disabled = true; return; }
   db = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
   function message(text, error=false) { $('form-message').textContent = text; $('form-message').style.color = error ? '#ff9aaa' : '#c4b5fd'; }
@@ -40,7 +84,7 @@
       await db.auth.signOut(); loginPanel.hidden=false; dashboard.hidden=true;
       $('login-message').textContent='Akun ini belum memiliki akses admin. Atur role admin melalui SQL sesuai panduan README.'; return;
     }
-    loginPanel.hidden=true; dashboard.hidden=false; $('admin-email').textContent=currentUser.email || ''; await loadRows();
+    loginPanel.hidden=true; dashboard.hidden=false; $('admin-email').textContent=currentUser.email || ''; await loadRows(); await loadAffiliateSettings();
   }
   $('login-form').addEventListener('submit', async e => {
     e.preventDefault(); $('login-message').textContent='Memeriksa akun...';
