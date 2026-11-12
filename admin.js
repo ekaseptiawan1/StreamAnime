@@ -14,6 +14,7 @@
     if (url.hostname === 'dropbox.com' || url.hostname.endsWith('.dropbox.com')) { url.searchParams.set('raw','1'); url.searchParams.delete('dl'); }
     return url.href;
   }
+  function posterDisplayUrl(value) { try { return normalizePosterUrl(value) || ''; } catch (_) { return ''; } }
   function updatePosterPreview() {
     const input=$('poster').value.trim(), img=$('poster-preview'), note=$('poster-preview-message');
     if(!input){img.hidden=true;img.removeAttribute('src');note.hidden=false;note.textContent='Masukkan link gambar untuk melihat preview.';return;}
@@ -28,7 +29,7 @@
     if (!['http:', 'https:'].includes(url.protocol)) throw new Error('URL video harus menggunakan HTTP atau HTTPS.');
     return url.href;
   }
-  function reset() { form.reset(); $('anime-id').value=''; $('form-title').textContent='Tambah Anime'; $('upload-progress').textContent=''; }
+  function reset() { form.reset(); $('anime-id').value=''; $('form-title').textContent='Tambah Anime'; $('upload-progress').textContent=''; updatePosterPreview(); }
   async function checkSession() {
     const {data:{session}} = await db.auth.getSession();
     if (!session) { currentUser=null; loginPanel.hidden=false; dashboard.hidden=true; return; }
@@ -53,7 +54,7 @@
     const {data,error}=await db.from('anime').select('*').order('created_at',{ascending:false});
     if(error){$('admin-list').textContent=error.message;return;}
     rows=data||[];
-    $('admin-list').innerHTML=rows.length?rows.map(a=>`<div class="admin-item"><img class="admin-thumb" src="${esc(normalizePosterUrl(a.poster_url||'')||'')}" alt="" onerror="this.style.visibility='hidden'"><div class="admin-item-info"><strong>${esc(a.title)}</strong><small class="muted">${esc(a.genre||'Anime')}</small></div><div class="admin-actions"><button class="button secondary" data-edit="${esc(a.id)}">Edit</button><button class="button danger" data-delete="${esc(a.id)}">Hapus</button></div></div>`).join(''):'<p class="muted">Belum ada anime. Tambahkan melalui formulir.</p>';
+    $('admin-list').innerHTML=rows.length?rows.map(a=>`<div class="admin-item"><img class="admin-thumb" src="${esc(posterDisplayUrl(a.poster_url))}" alt="" onerror="this.style.visibility='hidden'"><div class="admin-item-info"><strong>${esc(a.title)}</strong><small class="muted">${esc(a.genre||'Anime')}</small></div><div class="admin-actions"><button class="button secondary" data-edit="${esc(a.id)}">Edit</button><button class="button danger" data-delete="${esc(a.id)}">Hapus</button></div></div>`).join(''):'<p class="muted">Belum ada anime. Tambahkan melalui formulir.</p>';
     $('admin-list').querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>edit(b.dataset.edit)));
     $('admin-list').querySelectorAll('[data-delete]').forEach(b=>b.addEventListener('click',()=>removeAnime(b.dataset.delete)));
   }
