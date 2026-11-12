@@ -4,10 +4,11 @@ Website katalog dan streaming anime sederhana dengan dashboard admin. Frontend m
 
 ## Fitur
 - Katalog anime dan pencarian judul/genre.
-- Pemutar video HTML5.
+- Pemutar video HTML5 dengan dukungan link Dropbox dan URL video langsung.
 - Login admin melalui Supabase Auth.
 - Dashboard tambah, edit, dan hapus anime.
 - Upload MP4, WebM, atau OGG ke Supabase Storage.
+- Link video Dropbox dapat digunakan tanpa Google Drive API.
 - Row Level Security (RLS) untuk membatasi perubahan hanya kepada admin.
 - Tampilan responsif untuk ponsel dan desktop.
 
