@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090b14"><title>Menonton — StreamAnime</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar"><a class="brand" href="./"><span class="brand-mark">S</span>Stream<span>Anime</span></a><nav><a href="./">Beranda</a><a href="./#katalog">Katalog</a></nav><a class="admin-link" href="admin.html">Admin</a></header>
+<main class="watch-main">
+  <a class="back-link" href="./#katalog">← Kembali ke katalog</a>
+  <div id="watch-status" class="empty-state">Memuat video...</div>
+  <section id="watch-layout" class="watch-layout" hidden>
+    <div class="watch-primary">
+      <div id="watch-player" class="watch-player"></div>
+      <div class="watch-heading"><div><span class="eyebrow">SEDANG DIPUTAR</span><h1 id="watch-title"></h1><p id="watch-description"></p></div></div>
+    </div>
+    <aside class="watch-sidebar"><h2>Daftar Episode</h2><div id="watch-episodes" class="watch-episodes"></div></aside>
+  </section>
+</main>
+<footer><a class="brand" href="./"><span class="brand-mark">S</span>Stream<span>Anime</span></a><p>Streaming koleksi anime milikmu sendiri.</p><small>© <span id="year"></span> StreamAnime</small></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script><script src="watch.js"></script>
+</body></html>
