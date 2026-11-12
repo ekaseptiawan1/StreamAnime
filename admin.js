@@ -10,7 +10,7 @@
   function normalizeVideoUrl(value) {
     if (!value) return null;
     const url = new URL(value);
-    if (url.hostname === 'drive.google.com' || url.hostname === 'www.drive.google.com') throw new Error('Link Google Drive sudah tidak didukung. Gunakan link video Dropbox atau URL video langsung.');
+    if (url.hostname === 'drive.google.com' || url.hostname.endsWith('.drive.google.com')) throw new Error('Link Google Drive sudah tidak didukung. Gunakan link video Dropbox atau URL video langsung.');
     if (!['http:', 'https:'].includes(url.protocol)) throw new Error('URL video harus menggunakan HTTP atau HTTPS.');
     return url.href;
   }
