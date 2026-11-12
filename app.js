@@ -7,6 +7,15 @@
   const configured = window.SUPABASE_URL && !window.SUPABASE_URL.includes('YOUR_PROJECT_ID') && window.SUPABASE_ANON_KEY && !window.SUPABASE_ANON_KEY.includes('YOUR_');
   let db = null, anime = [];
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function drivePreviewUrl(value) {
+    try {
+      const url = new URL(value);
+      if (url.hostname !== 'drive.google.com' && url.hostname !== 'www.drive.google.com') return null;
+      const match = url.pathname.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      const id = (match && match[1]) || url.searchParams.get('id');
+      return id ? 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/preview' : null;
+    } catch (_) { return null; }
+  }
   function render() {
     const q = search.value.trim().toLowerCase();
     const rows = anime.filter(a => (a.title || '').toLowerCase().includes(q) || (a.genre || '').toLowerCase().includes(q));
@@ -15,7 +24,13 @@
   }
   function openPlayer(id) {
     const a = anime.find(x => String(x.id) === String(id)); if (!a) return;
-    player.innerHTML = `<h2>${esc(a.title)}</h2>${a.video_url ? `<video controls playsinline preload="metadata" src="${esc(a.video_url)}"></video>` : '<div class="empty-state">Video belum ditambahkan untuk anime ini.</div>'}<p>${esc(a.description || 'Belum ada deskripsi.')}</p><small class="muted">${esc(a.genre || '')}</small>`;
+    const driveUrl = a.video_url ? drivePreviewUrl(a.video_url) : null;
+    const videoMarkup = !a.video_url
+      ? '<div class="empty-state">Video belum ditambahkan untuk anime ini.</div>'
+      : driveUrl
+        ? `<iframe src="${esc(driveUrl)}" title="Pemutar ${esc(a.title)}" width="100%" height="360" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" style="border:0;border-radius:12px"></iframe><small class="muted">Video diputar melalui Google Drive. Jika tidak muncul, pastikan akses file diatur menjadi "Siapa saja yang memiliki link".</small>`
+        : `<video controls playsinline preload="metadata" src="${esc(a.video_url)}"></video>`;
+    player.innerHTML = `<h2>${esc(a.title)}</h2>${videoMarkup}<p>${esc(a.description || 'Belum ada deskripsi.')}</p><small class="muted">${esc(a.genre || '')}</small>`;
     modal.classList.add('open'); modal.setAttribute('aria-hidden','false');
   }
   function close() { modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); player.innerHTML = ''; }
