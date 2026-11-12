@@ -5,7 +5,7 @@
   const id=new URLSearchParams(location.search).get('id');
   const configured=window.SUPABASE_URL&&!window.SUPABASE_URL.includes('YOUR_PROJECT_ID')&&window.SUPABASE_ANON_KEY&&!window.SUPABASE_ANON_KEY.includes('YOUR_');
   const fmt=t=>{if(!Number.isFinite(t))return '0:00';const s=Math.floor(t);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
-  function driveIdFrom(url){try{const u=new URL(url);if(!/(^|\.)drive\.google\.com$/.test(u.hostname))return null;const m=u.pathname.match(/\/file\/d\/([\w-]+)/);return (m&&m[1])||u.searchParams.get('id');}catch(_){return null;}}
+  function driveIdFrom(url){try{const u=new URL(url);if(!/(^|\\.)drive\\.google\\.com$/.test(u.hostname))return null;const m=u.pathname.match(/\\/file\\/d\\/([\\w-]+)/);return (m&&m[1])||u.searchParams.get('id');}catch(_){return null;}}
   function videoMarkup(title,url){
     const driveId=driveIdFrom(url);
     if(driveId)return '<div class="player-stage drive-stage"><iframe src="https://drive.google.com/file/d/'+encodeURIComponent(driveId)+'/preview" title="'+esc(title)+'" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe><button class="fullscreen-button" type="button" aria-label="Layar penuh">⛶</button><div class="drive-note">Kontrol video disediakan oleh Google Drive</div></div>';
@@ -44,31 +44,19 @@
   document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&screen.orientation&&screen.orientation.unlock){try{screen.orientation.unlock();}catch(_){}}});
   async function init(){
     if(!id){$('watch-status').textContent='Anime tidak ditemukan. Kembali ke katalog dan pilih thumbnail.';return;}
-    if(!configured||!window.supabase){$('watch-status').textContent='Konfigurasi Supabase belum tersedia. Periksa koneksi internet dan file konfigurasi.';return;}
-    $('watch-status').textContent='Menghubungkan ke database...';
-    try{
-      const db=window.supabase.createClient(window.SUPABASE_URL,window.SUPABASE_ANON_KEY);
-      const request=db.from('anime').select('*').eq('id',id).single();
-      const result=await Promise.race([request,new Promise((_,reject)=>setTimeout(()=>reject(new Error('Koneksi terlalu lama. Periksa internet atau pengaturan Supabase.')),15000))]);
-      const anime=result.data;
-      if(result.error||!anime){$('watch-status').textContent='Data anime gagal dimuat. '+(result.error?.message||'Anime tidak ditemukan.');return;}
-      $('watch-status').textContent='Memuat daftar episode...';
-      const {data:episodes,error:episodeError}=await db.from('episodes').select('*').eq('anime_id',anime.id).order('episode_number',{ascending:true});
-      let list=(!episodeError&&episodes&&episodes.length)?episodes:[];
-      if(!list.length&&anime.video_url)list=[{title:anime.title,video_url:anime.video_url,episode_number:1}];
-      if(!list.length){
-        $('watch-status').textContent=episodeError?'Tabel episode belum siap atau tidak bisa diakses. Jalankan supabase-episodes-migration.sql di Supabase SQL Editor.':'Video belum tersedia untuk anime ini.';
-        return;
-      }
-      $('watch-status').hidden=true;$('watch-layout').hidden=false;
-      $('watch-episodes').innerHTML=list.map((ep,i)=>'<button class="watch-episode" type="button" data-index="'+i+'"><span class="episode-number">'+esc(ep.episode_number||i+1)+'</span><span>'+esc(ep.title||('Episode '+(i+1)))+'</span><span class="episode-play">▶</span></button>').join('');
-      $('watch-episodes').querySelectorAll('button').forEach((button,i)=>button.addEventListener('click',()=>showEpisode(list[i],i)));
-      $('watch-title').textContent=anime.title;$('watch-description').textContent=anime.description||anime.genre||'';
-      showEpisode(list[0],0);
-    }catch(error){
-      console.error('StreamAnime watch error:',error);
-      $('watch-status').textContent='Gagal memuat halaman nonton: '+(error?.message||'Periksa koneksi internet, Supabase, dan coba muat ulang.');
-    }
+    if(!configured||!window.supabase){$('watch-status').textContent='Konfigurasi Supabase belum tersedia.';return;}
+    const db=window.supabase.createClient(window.SUPABASE_URL,window.SUPABASE_ANON_KEY);
+    const {data:anime,error}=await db.from('anime').select('*').eq('id',id).single();
+    if(error||!anime){$('watch-status').textContent='Anime tidak ditemukan atau gagal dimuat.';return;}
+    const {data:episodes,error:episodeError}=await db.from('episodes').select('*').eq('anime_id',anime.id).order('episode_number',{ascending:true});
+    let list=(!episodeError&&episodes&&episodes.length)?episodes:[];
+    if(!list.length&&anime.video_url)list=[{title:anime.title,video_url:anime.video_url,episode_number:1}];
+    if(!list.length){$('watch-status').textContent='Video belum tersedia untuk anime ini.';return;}
+    $('watch-status').hidden=true;$('watch-layout').hidden=false;
+    $('watch-episodes').innerHTML=list.map((ep,i)=>'<button class="watch-episode" type="button" data-index="'+i+'"><span class="episode-number">'+esc(ep.episode_number||i+1)+'</span><span>'+esc(ep.title||('Episode '+(i+1)))+'</span><span class="episode-play">▶</span></button>').join('');
+    $('watch-episodes').querySelectorAll('button').forEach((button,i)=>button.addEventListener('click',()=>showEpisode(list[i],i)));
+    $('watch-title').textContent=anime.title;$('watch-description').textContent=anime.description||anime.genre||'';
+    showEpisode(list[0],0);
   }
   init();
 })();
