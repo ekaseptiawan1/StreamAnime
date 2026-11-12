@@ -4,48 +4,44 @@
   $('year').textContent=new Date().getFullYear();
   const id=new URLSearchParams(location.search).get('id');
   const configured=window.SUPABASE_URL&&!window.SUPABASE_URL.includes('YOUR_PROJECT_ID')&&window.SUPABASE_ANON_KEY&&!window.SUPABASE_ANON_KEY.includes('YOUR_');
+  const fmt=t=>{if(!Number.isFinite(t))return '0:00';const s=Math.floor(t);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+  function driveIdFrom(url){try{const u=new URL(url);if(!/(^|\\.)drive\\.google\\.com$/.test(u.hostname))return null;const m=u.pathname.match(/\\/file\\/d\\/([\\w-]+)/);return (m&&m[1])||u.searchParams.get('id');}catch(_){return null;}}
   function videoMarkup(title,url){
-    let driveId=null;
-    try{const u=new URL(url);if(/(^|\.)drive\.google\.com$/.test(u.hostname)){const m=u.pathname.match(/\/file\/d\/([\w-]+)/);driveId=(m&&m[1])||u.searchParams.get('id');}}catch(_){}
-    const media=driveId
-      ? '<iframe src="https://drive.google.com/file/d/'+encodeURIComponent(driveId)+'/preview" title="'+esc(title)+'" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>'
-      : '<video controls playsinline autoplay preload="metadata" src="'+esc(url)+'"></video>';
-    return '<div class="player-stage">'+media+'<button class="fullscreen-button" type="button" aria-label="Perbesar video" title="Layar penuh">⛶ <span>Layar penuh</span></button></div>';
+    const driveId=driveIdFrom(url);
+    if(driveId)return '<div class="player-stage drive-stage"><iframe src="https://drive.google.com/file/d/'+encodeURIComponent(driveId)+'/preview" title="'+esc(title)+'" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe><button class="fullscreen-button" type="button" aria-label="Layar penuh">⛶</button><div class="drive-note">Kontrol video disediakan oleh Google Drive</div></div>';
+    return '<div class="player-stage custom-stage"><video class="stream-video" playsinline preload="metadata" src="'+esc(url)+'"></video><button class="center-play" type="button" aria-label="Putar video">▶</button><div class="custom-controls"><div class="seek-row"><input class="seek-bar" type="range" min="0" max="1000" value="0" aria-label="Posisi video"><span class="time-display">0:00 / 0:00</span></div><div class="control-row"><button class="control-play" type="button" aria-label="Putar atau jeda">▶</button><button class="skip-back" type="button" aria-label="Mundur 10 detik">↶ 10</button><button class="skip-forward" type="button" aria-label="Maju 10 detik">10 ↷</button><button class="mute-button" type="button" aria-label="Bisukan">🔊</button><input class="volume-bar" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume"><select class="speed-select" aria-label="Kecepatan video"><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option></select><button class="fullscreen-button" type="button" aria-label="Layar penuh">⛶</button></div></div></div>';
+  }
+  function setupCustom(stage){
+    const video=stage.querySelector('video');if(!video)return;
+    const play=stage.querySelector('.control-play'),center=stage.querySelector('.center-play'),seek=stage.querySelector('.seek-bar'),time=stage.querySelector('.time-display'),mute=stage.querySelector('.mute-button'),volume=stage.querySelector('.volume-bar'),speed=stage.querySelector('.speed-select');
+    const toggle=()=>video.paused?video.play().catch(()=>{}):video.pause();
+    play.addEventListener('click',toggle);center.addEventListener('click',toggle);video.addEventListener('click',toggle);
+    const update=()=>{const playing=!video.paused;play.textContent=playing?'❚❚':'▶';center.textContent=playing?'':'▶';center.hidden=playing;time.textContent=fmt(video.currentTime)+' / '+fmt(video.duration);seek.value=video.duration?String(video.currentTime/video.duration*1000):'0';mute.textContent=video.muted||video.volume===0?'🔇':'🔊';};
+    ['play','pause','timeupdate','loadedmetadata','durationchange','volumechange','ended'].forEach(e=>video.addEventListener(e,update));
+    seek.addEventListener('input',()=>{if(video.duration)video.currentTime=Number(seek.value)/1000*video.duration;});
+    stage.querySelector('.skip-back').addEventListener('click',()=>video.currentTime=Math.max(0,video.currentTime-10));
+    stage.querySelector('.skip-forward').addEventListener('click',()=>video.currentTime=Math.min(video.duration||Infinity,video.currentTime+10));
+    mute.addEventListener('click',()=>video.muted=!video.muted);
+    volume.addEventListener('input',()=>{video.volume=Number(volume.value);video.muted=video.volume===0;});
+    speed.addEventListener('change',()=>{video.playbackRate=Number(speed.value);});
+    update();
+  }
+  async function toggleFullscreen(stage){
+    try{
+      if(document.fullscreenElement){await document.exitFullscreen();if(screen.orientation&&screen.orientation.unlock)screen.orientation.unlock();}
+      else if(stage.requestFullscreen){await stage.requestFullscreen();if(screen.orientation&&screen.orientation.lock){try{await screen.orientation.lock('landscape');}catch(_){}}}
+    }catch(_){const v=stage.querySelector('video');if(v&&v.webkitEnterFullscreen)v.webkitEnterFullscreen();else alert('Layar penuh tidak didukung browser ini.');}
   }
   function showEpisode(ep,index){
     $('watch-player').innerHTML=videoMarkup(ep.title,ep.video_url);
     const stage=$('watch-player').querySelector('.player-stage');
-    const fullButton=stage.querySelector('.fullscreen-button');
-    fullButton.addEventListener('click',async()=>{
-      const media=stage.querySelector('video,iframe');
-      try{
-        if(document.fullscreenElement){
-          await document.exitFullscreen();
-          if(screen.orientation&&screen.orientation.unlock)screen.orientation.unlock();
-        }
-        else if(stage.requestFullscreen){
-          await stage.requestFullscreen();
-          // Kunci orientasi mendatar saat fullscreen jika browser/perangkat mendukung.
-          if(screen.orientation&&screen.orientation.lock){
-            try{await screen.orientation.lock('landscape');}catch(_){/* Perangkat dapat meminta rotasi manual. */}
-          }
-        }
-        else if(media&&media.webkitEnterFullscreen){media.webkitEnterFullscreen();}
-        else{alert('Mode layar penuh tidak didukung browser ini. Coba buka melalui Chrome.');}
-      }catch(error){
-        if(media&&media.webkitEnterFullscreen)media.webkitEnterFullscreen();
-        else alert('Tidak bisa membuka layar penuh. Coba putar video langsung dari pemutar.');
-      }
-    });
+    stage.querySelector('.fullscreen-button').addEventListener('click',()=>toggleFullscreen(stage));
+    setupCustom(stage);
     $('watch-title').textContent=ep.title||('Episode '+(index+1));
     document.querySelectorAll('.watch-episode').forEach((b,i)=>b.classList.toggle('active',i===index));
     document.title=(ep.title||'Menonton')+' — StreamAnime';
   }
-  document.addEventListener('fullscreenchange',()=>{
-    if(!document.fullscreenElement&&screen.orientation&&screen.orientation.unlock){
-      try{screen.orientation.unlock();}catch(_){}
-    }
-  });
+  document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&screen.orientation&&screen.orientation.unlock){try{screen.orientation.unlock();}catch(_){}}});
   async function init(){
     if(!id){$('watch-status').textContent='Anime tidak ditemukan. Kembali ke katalog dan pilih thumbnail.';return;}
     if(!configured||!window.supabase){$('watch-status').textContent='Konfigurasi Supabase belum tersedia.';return;}
@@ -59,9 +55,7 @@
     $('watch-status').hidden=true;$('watch-layout').hidden=false;
     $('watch-episodes').innerHTML=list.map((ep,i)=>'<button class="watch-episode" type="button" data-index="'+i+'"><span class="episode-number">'+esc(ep.episode_number||i+1)+'</span><span>'+esc(ep.title||('Episode '+(i+1)))+'</span><span class="episode-play">▶</span></button>').join('');
     $('watch-episodes').querySelectorAll('button').forEach((button,i)=>button.addEventListener('click',()=>showEpisode(list[i],i)));
-    $('watch-layout').querySelector('.watch-heading').insertAdjacentHTML('beforeend','');
-    $('watch-title').textContent=anime.title;
-    $('watch-description').textContent=anime.description||anime.genre||'';
+    $('watch-title').textContent=anime.title;$('watch-description').textContent=anime.description||anime.genre||'';
     showEpisode(list[0],0);
   }
   init();
