@@ -65,3 +65,6 @@
 /* Navigasi episode berikutnya */
 .watch-heading{display:flex;align-items:center;justify-content:space-between;gap:18px}.watch-heading-copy{min-width:0}.next-episode-button{flex:none;border:1px solid #9b87ff;border-radius:10px;padding:12px 16px;background:linear-gradient(120deg,#a78bfa,#7965ec);color:#171225;font:700 13px 'DM Sans';cursor:pointer;transition:filter .2s,transform .2s}.next-episode-button:hover:not(:disabled){filter:brightness(1.12);transform:translateY(-1px)}.next-episode-button:disabled{background:#252b3d;border-color:#3a4054;color:#858da2;cursor:not-allowed}
 @media(max-width:600px){.watch-heading{align-items:stretch;flex-direction:column;gap:14px}.next-episode-button{width:100%;padding:13px}}
+
+/* Poster URL preview in admin */
+.poster-preview-wrap{display:flex;flex-direction:column;gap:9px;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;margin:8px 0 16px}.poster-preview{width:120px;height:165px;object-fit:cover;border-radius:8px;background:var(--panel2)}
