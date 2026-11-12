@@ -91,7 +91,7 @@
   });
 
   function getDriveFolderId(value) {
-    try { const u=new URL(value); if(!/(^|\\.)drive\\.google\\.com$/.test(u.hostname)) return ''; const m=u.pathname.match(/\\/folders\\/([a-zA-Z0-9_-]+)/); return (m&&m[1])||u.searchParams.get('id')||''; }
+    try { const u=new URL(value); if(!/(^|\.)drive\.google\.com$/.test(u.hostname)) return ''; const m=u.pathname.match(/\/folders\/([a-zA-Z0-9_-]+)/); return (m&&m[1])||u.searchParams.get('id')||''; }
     catch (_) { return ''; }
   }
   async function readDriveFolder(folderId) {
@@ -117,9 +117,9 @@
       const files=await readDriveFolder(folderId);
       if(!files.length){status.textContent='Tidak ditemukan file video. Pastikan folder dan videonya dapat diakses siapa saja yang memiliki link.';return;}
       const payload=files.map((f,index)=>{
-        const match=f.name.match(/(?:episode|eps?|ep)[ ._-]*(\\d+)/i)||f.name.match(/(\\d+)/);
+        const match=f.name.match(/(?:episode|eps?|ep)[ ._-]*(\d+)/i)||f.name.match(/(\d+)/);
         const number=match?Number(match[1]):index+1;
-        return {anime_id:Number(animeId),episode_number:number,title:f.name.replace(/\\.[^.]+$/,''),drive_file_id:f.id,video_url:'https://drive.google.com/file/d/'+encodeURIComponent(f.id)+'/preview'};
+        return {anime_id:Number(animeId),episode_number:number,title:f.name.replace(/\.[^.]+$/,''),drive_file_id:f.id,video_url:'https://drive.google.com/file/d/'+encodeURIComponent(f.id)+'/preview'};
       });
       const {error}=await db.from('episodes').upsert(payload,{onConflict:'anime_id,drive_file_id'});
       if(error) throw error;
