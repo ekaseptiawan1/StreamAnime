@@ -19,8 +19,17 @@
     fullButton.addEventListener('click',async()=>{
       const media=stage.querySelector('video,iframe');
       try{
-        if(document.fullscreenElement){await document.exitFullscreen();}
-        else if(stage.requestFullscreen){await stage.requestFullscreen();}
+        if(document.fullscreenElement){
+          await document.exitFullscreen();
+          if(screen.orientation&&screen.orientation.unlock)screen.orientation.unlock();
+        }
+        else if(stage.requestFullscreen){
+          await stage.requestFullscreen();
+          // Kunci orientasi mendatar saat fullscreen jika browser/perangkat mendukung.
+          if(screen.orientation&&screen.orientation.lock){
+            try{await screen.orientation.lock('landscape');}catch(_){/* Perangkat dapat meminta rotasi manual. */}
+          }
+        }
         else if(media&&media.webkitEnterFullscreen){media.webkitEnterFullscreen();}
         else{alert('Mode layar penuh tidak didukung browser ini. Coba buka melalui Chrome.');}
       }catch(error){
@@ -32,6 +41,11 @@
     document.querySelectorAll('.watch-episode').forEach((b,i)=>b.classList.toggle('active',i===index));
     document.title=(ep.title||'Menonton')+' — StreamAnime';
   }
+  document.addEventListener('fullscreenchange',()=>{
+    if(!document.fullscreenElement&&screen.orientation&&screen.orientation.unlock){
+      try{screen.orientation.unlock();}catch(_){}
+    }
+  });
   async function init(){
     if(!id){$('watch-status').textContent='Anime tidak ditemukan. Kembali ke katalog dan pilih thumbnail.';return;}
     if(!configured||!window.supabase){$('watch-status').textContent='Konfigurasi Supabase belum tersedia.';return;}
