@@ -2,7 +2,7 @@
   const $=id=>document.getElementById(id);
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   $('year').textContent=new Date().getFullYear();
-  const id=new URLSearchParams(location.search).get('id');
+  const params=new URLSearchParams(location.search);\n  const id=params.get('id');\n  const requestedEpisode=params.get('episode');
   const configured=window.SUPABASE_URL&&!window.SUPABASE_URL.includes('YOUR_PROJECT_ID')&&window.SUPABASE_ANON_KEY&&!window.SUPABASE_ANON_KEY.includes('YOUR_');
   const fmt=t=>{if(!Number.isFinite(t))return '0:00';const s=Math.floor(t);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
   function isDriveUrl(url){try{const host=new URL(url).hostname;return host==='drive.google.com'||host.endsWith('.drive.google.com');}catch(_){return false;}}
@@ -77,7 +77,7 @@
     $('watch-episodes').querySelectorAll('button').forEach((button,i)=>button.addEventListener('click',()=>showEpisode(list[i],i)));
     $('next-episode').addEventListener('click',()=>{if(currentIndex<episodeList.length-1)showEpisode(episodeList[currentIndex+1],currentIndex+1,true);});
     $('watch-title').textContent=anime.title;$('watch-description').textContent=anime.description||anime.genre||'';
-    showEpisode(list[0],0);
+    const selectedIndex=requestedEpisode?list.findIndex(ep=>String(ep.id)===String(requestedEpisode)):0;\n    showEpisode(list[selectedIndex>=0?selectedIndex:0],selectedIndex>=0?selectedIndex:0);
   }
   init();
 })();
