@@ -2,7 +2,9 @@
   const $=id=>document.getElementById(id);
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   $('year').textContent=new Date().getFullYear();
-  const params=new URLSearchParams(location.search);\n  const id=params.get('id');\n  const requestedEpisode=params.get('episode');
+  const params=new URLSearchParams(location.search);
+  const id=params.get('id');
+  const requestedEpisode=params.get('episode');
   const configured=window.SUPABASE_URL&&!window.SUPABASE_URL.includes('YOUR_PROJECT_ID')&&window.SUPABASE_ANON_KEY&&!window.SUPABASE_ANON_KEY.includes('YOUR_');
   const fmt=t=>{if(!Number.isFinite(t))return '0:00';const s=Math.floor(t);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
   function isDriveUrl(url){try{const host=new URL(url).hostname;return host==='drive.google.com'||host.endsWith('.drive.google.com');}catch(_){return false;}}
