@@ -91,3 +91,20 @@
 .affiliate-toggle{display:flex;align-items:center;gap:10px;font-size:13px;color:#d9dbea}
 .affiliate-toggle input{width:18px;height:18px;accent-color:var(--accent)}
 @media(max-width:700px){.affiliate-banner{margin:12px auto;padding:0 12px}.affiliate-products{grid-auto-columns:145px;gap:10px}.affiliate-product img{height:135px}.affiliate-banner-heading span{font-size:12px}}
+
+/* Halaman detail anime dan daftar episode per anime */
+.detail-main{max-width:1120px;margin:28px auto;padding:0 22px 70px;min-height:65vh}
+.anime-detail[hidden]{display:none}
+.detail-hero{display:grid;grid-template-columns:220px minmax(0,1fr);gap:28px;align-items:center;padding:24px;background:linear-gradient(130deg,#171b2c,#101421);border:1px solid var(--line);border-radius:16px}
+.detail-hero>img{width:100%;height:300px;object-fit:cover;border-radius:11px;background:var(--panel2)}
+.detail-copy h1{font:700 clamp(26px,4vw,40px) 'Space Grotesk';margin:10px 0}
+.detail-copy p{color:var(--muted);line-height:1.7}
+.detail-genre{color:#c4b5fd!important;font-size:13px}
+.detail-count{display:inline-block;margin-top:8px;padding:8px 12px;border-radius:8px;background:#282342;color:#d8ceff;font-size:12px}
+.detail-episodes{margin-top:34px}
+.detail-episode-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.detail-episode{display:flex;align-items:center;gap:12px;padding:14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;transition:border-color .2s,transform .2s}
+.detail-episode:hover{border-color:#9b87ff;transform:translateY(-2px)}
+.detail-episode-name{flex:1;font-size:13px;font-weight:600}
+.detail-main .empty-state{margin-top:15px}
+@media(max-width:600px){.detail-main{padding:0 14px 45px}.detail-hero{grid-template-columns:105px minmax(0,1fr);gap:14px;padding:14px}.detail-hero>img{height:150px}.detail-copy h1{font-size:21px;margin:7px 0}.detail-copy p{font-size:12px;margin:7px 0}.detail-count{font-size:10px;padding:6px 8px}.detail-episode-grid{grid-template-columns:1fr}}
