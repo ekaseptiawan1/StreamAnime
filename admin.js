@@ -294,9 +294,10 @@
     const numbers=[...base.matchAll(/(?:^|[ ._-])(\d{1,4})(?=$|[ ._-])/g)].map(x=>Number(x[1])).filter(n=>n>0&&![480,720,1080,1440,2160].includes(n));
     return numbers.length?numbers[numbers.length-1]:null;
   }
-  async function getDropboxSharedUrl(path){
+  async function getDropboxSharedUrl(file){
+    const path=file.id||file.path_lower||file.path_display;
     try{
-      const created=await dropboxApi('sharing/create_shared_link_with_settings',{path,settings:{requested_visibility:'public'}});
+      const created=await dropboxApi('sharing/create_shared_link_with_settings',{path,settings:{requested_visibility:{'.tag':'public'},audience:{'.tag':'public'},access:{'.tag':'viewer'},allow_download:true}});
       return created.url;
     }catch(err){
       if(!String(err.message).includes('shared_link_already_exists'))throw err;
@@ -306,10 +307,18 @@
     }
   }
   async function listDropboxVideos(folderUrl){
-    let page=await dropboxApi('files/list_folder',{path:'',shared_link:folderUrl,recursive:true,include_non_downloadable_files:false});
-    const entries=[...(page.entries||[])];
-    while(page.has_more){page=await dropboxApi('files/list_folder/continue',{cursor:page.cursor});entries.push(...(page.entries||[]));}
-    return entries.filter(item=>item['.tag']==='file'&&/\.(mp4|m4v|webm|ogv|ogg|mov)$/i.test(item.name||'')).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
+    const files=[],queue=[''];
+    for(let q=0;q<queue.length;q++){
+      const currentPath=queue[q];
+      let page=await dropboxApi('files/list_folder',{path:currentPath,shared_link:{url:folderUrl},recursive:false,include_non_downloadable_files:false,limit:2000});
+      const entries=[...(page.entries||[])];
+      while(page.has_more){page=await dropboxApi('files/list_folder/continue',{cursor:page.cursor});entries.push(...(page.entries||[]));}
+      for(const entry of entries){
+        if(entry['.tag']==='folder')queue.push(entry.path_display||entry.name);
+        else if(entry['.tag']==='file'&&/\.(mp4|m4v|webm|ogv|ogg|mov)$/i.test(entry.name||''))files.push(entry);
+      }
+    }
+    return files.sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
   }
   async function importDropboxFolder(){
     const button=$('dropbox-import');button.disabled=true;
