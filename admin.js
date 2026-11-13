@@ -241,6 +241,110 @@
     finally{button.disabled=false;}
   });
 
+
+  // Impor massal Dropbox melalui OAuth PKCE (token hanya disimpan sementara di tab).
+  const DROPBOX_TOKEN_KEY='streamanime_dropbox_access_token';
+  const DROPBOX_APP_KEY_KEY='streamanime_dropbox_app_key';
+  const dropboxStatus=$('dropbox-auth-status'),dropboxMessage=$('dropbox-import-status');
+  function setDropboxMessage(value,error=false){dropboxMessage.textContent=value;dropboxMessage.style.color=error?'#ff9aaa':'#c4b5fd';}
+  function base64Url(bytes){return btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');}
+  async function connectDropbox(){
+    const appKey=$('dropbox-app-key').value.trim();
+    if(!appKey){dropboxStatus.textContent='Masukkan Dropbox App Key terlebih dahulu.';return;}
+    localStorage.setItem(DROPBOX_APP_KEY_KEY,appKey);
+    const verifier=base64Url(crypto.getRandomValues(new Uint8Array(64)));
+    const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier));
+    const state=base64Url(crypto.getRandomValues(new Uint8Array(24)));
+    sessionStorage.setItem('streamanime_dbx_verifier',verifier);
+    sessionStorage.setItem('streamanime_dbx_state',state);
+    const redirect=location.origin+location.pathname;
+    const params=new URLSearchParams({client_id:appKey,response_type:'code',redirect_uri:redirect,code_challenge:base64Url(digest),code_challenge_method:'S256',token_access_type:'online',scope:'files.metadata.read sharing.read sharing.write'});
+    location.href='https://www.dropbox.com/oauth2/authorize?'+params.toString();
+  }
+  async function handleDropboxCallback(){
+    const params=new URLSearchParams(location.search),code=params.get('code');
+    if(!code)return;
+    const state=params.get('state'),expected=sessionStorage.getItem('streamanime_dbx_state');
+    if(!state||state!==expected){dropboxStatus.textContent='Login Dropbox gagal: state tidak cocok.';return;}
+    const verifier=sessionStorage.getItem('streamanime_dbx_verifier'),appKey=localStorage.getItem(DROPBOX_APP_KEY_KEY);
+    if(!verifier||!appKey){dropboxStatus.textContent='Sesi OAuth tidak lengkap. Hubungkan ulang Dropbox.';return;}
+    try{
+      const body=new URLSearchParams({code,grant_type:'authorization_code',client_id:appKey,redirect_uri:location.origin+location.pathname,code_verifier:verifier});
+      const response=await fetch('https://api.dropboxapi.com/oauth2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+      const data=await response.json();if(!response.ok)throw new Error(data.error_description||data.error||'Gagal menghubungkan Dropbox.');
+      sessionStorage.setItem(DROPBOX_TOKEN_KEY,data.access_token);
+      dropboxStatus.textContent='Dropbox berhasil terhubung.';
+    }catch(err){dropboxStatus.textContent=err.message||'Gagal menghubungkan Dropbox.';}
+    finally{sessionStorage.removeItem('streamanime_dbx_verifier');sessionStorage.removeItem('streamanime_dbx_state');history.replaceState({},document.title,location.pathname);}
+  }
+  async function dropboxApi(path,body){
+    const token=sessionStorage.getItem(DROPBOX_TOKEN_KEY);if(!token)throw new Error('Hubungkan akun Dropbox terlebih dahulu.');
+    const response=await fetch('https://api.dropboxapi.com/2/'+path,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await response.json();if(!response.ok)throw new Error(data.error_summary||data.error_description||('Dropbox API error '+response.status));
+    return data;
+  }
+  function parseDropboxFolderUrl(value){
+    const url=new URL(value);if(!['http:','https:'].includes(url.protocol)||!/(^|\\.)dropbox\\.com$/i.test(url.hostname))throw new Error('Masukkan link folder Dropbox yang valid.');
+    return url.href;
+  }
+  function episodeNumberFromName(name){
+    const base=name.replace(/\\.[^.]+$/,'');
+    const patterns=[/(?:episode|ep|e)[ ._#-]*(\\d{1,4})/i,/[ ._(-](\\d{1,4})(?:v\\d)?[ )_.-]*$/i,/^(\\d{1,4})[ ._-]/];
+    for(const pattern of patterns){const match=base.match(pattern);if(match)return Number(match[1]);}
+    return null;
+  }
+  async function getDropboxSharedUrl(path){
+    try{
+      const created=await dropboxApi('sharing/create_shared_link_with_settings',{path,settings:{requested_visibility:'public'}});
+      return created.url;
+    }catch(err){
+      if(!String(err.message).includes('shared_link_already_exists'))throw err;
+      const existing=await dropboxApi('sharing/list_shared_links',{path,direct_only:true});
+      if(!existing.links||!existing.links.length)throw err;
+      return existing.links[0].url;
+    }
+  }
+  async function listDropboxVideos(folderUrl){
+    let page=await dropboxApi('files/list_folder',{path:'',shared_link:folderUrl,recursive:true,include_non_downloadable_files:false});
+    const entries=[...(page.entries||[])];
+    while(page.has_more){page=await dropboxApi('files/list_folder/continue',{cursor:page.cursor});entries.push(...(page.entries||[]));}
+    return entries.filter(item=>item['.tag']==='file'&&/\\.(mp4|m4v|webm|ogv|ogg|mov)$/i.test(item.name||'')).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
+  }
+  async function importDropboxFolder(){
+    const button=$('dropbox-import');button.disabled=true;
+    try{
+      if(!currentUser)throw new Error('Login admin diperlukan.');
+      const animeId=$('dropbox-target-anime').value;if(!animeId)throw new Error('Pilih anime tujuan.');
+      const start=Number($('dropbox-start-number').value);if(!Number.isInteger(start)||start<1)throw new Error('Nomor episode awal minimal 1.');
+      const folder=parseDropboxFolderUrl($('dropbox-folder-url').value.trim());
+      setDropboxMessage('Membaca isi folder Dropbox...');
+      const files=await listDropboxVideos(folder);if(!files.length)throw new Error('Tidak ditemukan file video di folder tersebut.');
+      const {data:existing,error}=await db.from('episodes').select('episode_number').eq('anime_id',animeId);
+      if(error)throw error;
+      const used=new Set((existing||[]).map(x=>Number(x.episode_number)));
+      let added=0,skipped=0;
+      for(let i=0;i<files.length;i++){
+        const file=files[i];let number=episodeNumberFromName(file.name);
+        if(!number){number=start;while(used.has(number))number++;}
+        if(used.has(number)){skipped++;setDropboxMessage('Memproses '+(i+1)+'/'+files.length+' • '+added+' ditambahkan, '+skipped+' dilewati...');continue;}
+        setDropboxMessage('Membuat link video '+(i+1)+'/'+files.length+': '+file.name);
+        const sharedUrl=await getDropboxSharedUrl(file.path_lower||file.path_display);
+        const cleanUrl=new URL(sharedUrl);cleanUrl.searchParams.set('raw','1');cleanUrl.searchParams.delete('dl');
+        const {error:insertError}=await db.from('episodes').insert({anime_id:Number(animeId),episode_number:number,title:file.name.replace(/\\.[^.]+$/,''),video_url:cleanUrl.href,drive_file_id:null});
+        if(insertError){if(String(insertError.code)==='23505'){skipped++;used.add(number);continue;}throw insertError;}
+        used.add(number);added++;
+      }
+      setDropboxMessage('Selesai! '+added+' video ditambahkan sebagai episode. '+skipped+' dilewati karena nomor episode sudah ada.');
+      $('episode-anime').value=animeId;await loadEpisodeRows();
+    }catch(err){setDropboxMessage(err.message||'Impor Dropbox gagal.',true);}
+    finally{button.disabled=false;}
+  }
+  $('dropbox-app-key').value=localStorage.getItem(DROPBOX_APP_KEY_KEY)||'';
+  if(sessionStorage.getItem(DROPBOX_TOKEN_KEY))dropboxStatus.textContent='Dropbox sudah terhubung di tab ini.';
+  $('dropbox-connect').addEventListener('click',connectDropbox);
+  $('dropbox-import').addEventListener('click',importDropboxFolder);
+  handleDropboxCallback();
+
   db.auth.onAuthStateChange(()=>{setTimeout(checkSession,0);});
   checkSession();
 })();
