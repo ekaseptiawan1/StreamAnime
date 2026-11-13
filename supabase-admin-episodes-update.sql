@@ -6,5 +6,3 @@ alter table public.episodes drop constraint if exists episodes_anime_id_drive_fi
 create index if not exists episodes_anime_id_episode_number_idx
   on public.episodes (anime_id, episode_number);
 
--- Tambahkan kolom untuk URL embed resmi penyedia video (jika belum ada).
-alter table public.episodes add column if not exists embed_url text;
