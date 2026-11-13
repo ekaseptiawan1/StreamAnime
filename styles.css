@@ -108,3 +108,7 @@
 .detail-episode-name{flex:1;font-size:13px;font-weight:600}
 .detail-main .empty-state{margin-top:15px}
 @media(max-width:600px){.detail-main{padding:0 14px 45px}.detail-hero{grid-template-columns:105px minmax(0,1fr);gap:14px;padding:14px}.detail-hero>img{height:150px}.detail-copy h1{font-size:21px;margin:7px 0}.detail-copy p{font-size:12px;margin:7px 0}.detail-count{font-size:10px;padding:6px 8px}.detail-episode-grid{grid-template-columns:1fr}}
+
+
+/* Navigasi menu dashboard admin */
+.admin-menu{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 18px}.admin-menu-item{border:1px solid var(--border,#303044);background:var(--card,#151525);color:inherit;border-radius:12px;padding:12px 16px;font:inherit;font-weight:700;cursor:pointer}.admin-menu-item.active{background:var(--accent,#7657e8);border-color:var(--accent,#7657e8);color:#fff}.admin-pane[hidden]{display:none!important}#episode-list .admin-item{align-items:center}#episode-list .admin-item-info small{display:block;max-width:100%;overflow-wrap:anywhere;margin-top:5px}
