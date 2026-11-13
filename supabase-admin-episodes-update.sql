@@ -6,3 +6,5 @@ alter table public.episodes drop constraint if exists episodes_anime_id_drive_fi
 create index if not exists episodes_anime_id_episode_number_idx
   on public.episodes (anime_id, episode_number);
 
+-- Hapus kolom embed yang sebelumnya sempat ditambahkan.
+alter table public.episodes drop column if exists embed_url;
