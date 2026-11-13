@@ -121,6 +121,7 @@
     const {data,error}=await db.from('anime').select('*').order('created_at',{ascending:false});
     if(error){$('admin-list').textContent=error.message;return;}
     rows=data||[];
+    if(typeof populateAnimeOptions==='function')populateAnimeOptions();
     $('admin-list').innerHTML=rows.length?rows.map(a=>`<div class="admin-item"><img class="admin-thumb" src="${esc(posterDisplayUrl(a.poster_url))}" alt="" onerror="this.style.visibility='hidden'"><div class="admin-item-info"><strong>${esc(a.title)}</strong><small class="muted">${esc(a.genre||'Anime')}</small></div><div class="admin-actions"><button class="button secondary" data-edit="${esc(a.id)}">Edit</button><button class="button danger" data-delete="${esc(a.id)}">Hapus</button></div></div>`).join(''):'<p class="muted">Belum ada anime. Tambahkan melalui formulir.</p>';
     $('admin-list').querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>edit(b.dataset.edit)));
     $('admin-list').querySelectorAll('[data-delete]').forEach(b=>b.addEventListener('click',()=>removeAnime(b.dataset.delete)));
