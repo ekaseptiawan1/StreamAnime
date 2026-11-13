@@ -247,7 +247,7 @@
   const DROPBOX_APP_KEY_KEY='streamanime_dropbox_app_key';
   const dropboxStatus=$('dropbox-auth-status'),dropboxMessage=$('dropbox-import-status');
   function setDropboxMessage(value,error=false){dropboxMessage.textContent=value;dropboxMessage.style.color=error?'#ff9aaa':'#c4b5fd';}
-  function base64Url(bytes){return btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');}
+  function base64Url(bytes){return btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
   async function connectDropbox(){
     const appKey=$('dropbox-app-key').value.trim();
     if(!appKey){dropboxStatus.textContent='Masukkan Dropbox App Key terlebih dahulu.';return;}
@@ -284,14 +284,15 @@
     return data;
   }
   function parseDropboxFolderUrl(value){
-    const url=new URL(value);if(!['http:','https:'].includes(url.protocol)||!/(^|\\.)dropbox\\.com$/i.test(url.hostname))throw new Error('Masukkan link folder Dropbox yang valid.');
+    const url=new URL(value);if(!['http:','https:'].includes(url.protocol)||!/(^|\.)dropbox\.com$/i.test(url.hostname))throw new Error('Masukkan link folder Dropbox yang valid.');
     return url.href;
   }
   function episodeNumberFromName(name){
-    const base=name.replace(/\\.[^.]+$/,'');
-    const patterns=[/(?:episode|ep|e)[ ._#-]*(\\d{1,4})/i,/[ ._(-](\\d{1,4})(?:v\\d)?[ )_.-]*$/i,/^(\\d{1,4})[ ._-]/];
+    const base=name.replace(/\.[^.]+$/,'');
+    const patterns=[/[ ._-]s\d{1,2}[ ._-]*(\d{1,4})(?:\D|$)/i,/(?:episode|ep)[ ._#-]*(\d{1,4})/i,/^(\d{1,4})[ ._-]/i];
     for(const pattern of patterns){const match=base.match(pattern);if(match)return Number(match[1]);}
-    return null;
+    const numbers=[...base.matchAll(/(?:^|[ ._-])(\d{1,4})(?=$|[ ._-])/g)].map(x=>Number(x[1])).filter(n=>n>0&&![480,720,1080,1440,2160].includes(n));
+    return numbers.length?numbers[numbers.length-1]:null;
   }
   async function getDropboxSharedUrl(path){
     try{
@@ -308,7 +309,7 @@
     let page=await dropboxApi('files/list_folder',{path:'',shared_link:folderUrl,recursive:true,include_non_downloadable_files:false});
     const entries=[...(page.entries||[])];
     while(page.has_more){page=await dropboxApi('files/list_folder/continue',{cursor:page.cursor});entries.push(...(page.entries||[]));}
-    return entries.filter(item=>item['.tag']==='file'&&/\\.(mp4|m4v|webm|ogv|ogg|mov)$/i.test(item.name||'')).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
+    return entries.filter(item=>item['.tag']==='file'&&/\.(mp4|m4v|webm|ogv|ogg|mov)$/i.test(item.name||'')).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
   }
   async function importDropboxFolder(){
     const button=$('dropbox-import');button.disabled=true;
@@ -330,7 +331,7 @@
         setDropboxMessage('Membuat link video '+(i+1)+'/'+files.length+': '+file.name);
         const sharedUrl=await getDropboxSharedUrl(file.path_lower||file.path_display);
         const cleanUrl=new URL(sharedUrl);cleanUrl.searchParams.set('raw','1');cleanUrl.searchParams.delete('dl');
-        const {error:insertError}=await db.from('episodes').insert({anime_id:Number(animeId),episode_number:number,title:file.name.replace(/\\.[^.]+$/,''),video_url:cleanUrl.href,drive_file_id:null});
+        const {error:insertError}=await db.from('episodes').insert({anime_id:Number(animeId),episode_number:number,title:file.name.replace(/\.[^.]+$/,''),video_url:cleanUrl.href,drive_file_id:null});
         if(insertError){if(String(insertError.code)==='23505'){skipped++;used.add(number);continue;}throw insertError;}
         used.add(number);added++;
       }
