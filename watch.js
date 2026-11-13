@@ -79,7 +79,8 @@
     $('watch-episodes').querySelectorAll('button').forEach((button,i)=>button.addEventListener('click',()=>showEpisode(list[i],i)));
     $('next-episode').addEventListener('click',()=>{if(currentIndex<episodeList.length-1)showEpisode(episodeList[currentIndex+1],currentIndex+1,true);});
     $('watch-title').textContent=anime.title;$('watch-description').textContent=anime.description||anime.genre||'';
-    const selectedIndex=requestedEpisode?list.findIndex(ep=>String(ep.id)===String(requestedEpisode)):0;\n    showEpisode(list[selectedIndex>=0?selectedIndex:0],selectedIndex>=0?selectedIndex:0);
+    const selectedIndex=requestedEpisode?list.findIndex(ep=>String(ep.id)===String(requestedEpisode)):0;
+    showEpisode(list[selectedIndex>=0?selectedIndex:0],selectedIndex>=0?selectedIndex:0);
   }
   init();
 })();
