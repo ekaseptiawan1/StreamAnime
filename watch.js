@@ -13,11 +13,6 @@
     const playableUrl=dropboxDirectUrl(url);
     return '<div class="player-stage custom-stage"><video class="stream-video" playsinline preload="auto" fetchpriority="high" src="'+esc(playableUrl)+'"></video><div class="player-loading" role="status"><span class="loading-spinner"></span><span>Menyiapkan video...</span></div><p class="player-error" hidden style="padding:12px;color:#ffb4b4;text-align:center">Video gagal dimuat. Pastikan link Dropbox dapat diakses publik dan file berformat MP4/WebM yang didukung browser.</p><button class="center-play" type="button" aria-label="Putar video">▶</button><div class="custom-controls"><div class="seek-row"><input class="seek-bar" type="range" min="0" max="1000" value="0" aria-label="Posisi video"><span class="time-display">0:00 / 0:00</span></div><div class="control-row"><button class="control-play" type="button" aria-label="Putar atau jeda">▶</button><button class="skip-back" type="button" aria-label="Mundur 10 detik">↶ 10</button><button class="skip-forward" type="button" aria-label="Maju 10 detik">10 ↷</button><button class="mute-button" type="button" aria-label="Bisukan">🔊</button><input class="volume-bar" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume"><select class="speed-select" aria-label="Kecepatan video"><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option></select><button class="fullscreen-button" type="button" aria-label="Layar penuh">⛶</button></div></div></div>';
   }
-  function embedMarkup(title,url){
-    const safeUrl=new URL(url);
-    if(safeUrl.protocol!=='https:')throw new Error('URL embed harus HTTPS.');
-    return '<div class="player-stage embed-stage"><iframe src="'+esc(safeUrl.href)+'" title="'+esc(title||'Pemutar episode')+'" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-popups allow-popups-to-escape-sandbox"></iframe><p class="embed-fallback">Jika pemutar tidak muncul, penyedia mungkin memblokir iframe. <a href="'+esc(safeUrl.href)+'" target="_blank" rel="noopener noreferrer">Buka sumber di tab baru</a>.</p></div>';
-  }
   function setupCustom(stage){
     const video=stage.querySelector('video');if(!video)return;
     const play=stage.querySelector('.control-play'),center=stage.querySelector('.center-play'),seek=stage.querySelector('.seek-bar'),time=stage.querySelector('.time-display'),mute=stage.querySelector('.mute-button'),volume=stage.querySelector('.volume-bar'),speed=stage.querySelector('.speed-select');
@@ -55,13 +50,10 @@
   let currentIndex=0;
   function showEpisode(ep,index,autoplay=false){
     currentIndex=index;
-    const useEmbed=!!ep.embed_url;
-    $('watch-player').innerHTML=useEmbed?embedMarkup(ep.title,ep.embed_url):videoMarkup(ep.title,ep.video_url);
+    $('watch-player').innerHTML=videoMarkup(ep.title,ep.video_url);
     const stage=$('watch-player').querySelector('.player-stage');
-    if(!useEmbed){
-      stage.querySelector('.fullscreen-button').addEventListener('click',()=>toggleFullscreen(stage));
-      setupCustom(stage);
-    }
+    stage.querySelector('.fullscreen-button').addEventListener('click',()=>toggleFullscreen(stage));
+    setupCustom(stage);
     const nextButton=$('next-episode');
     if(nextButton){nextButton.disabled=index>=episodeList.length-1;nextButton.textContent=nextButton.disabled?'Episode Terakhir':'Episode Selanjutnya  →';}
     const video=stage.querySelector('video');
