@@ -191,9 +191,11 @@
     $('episode-form').reset();$('episode-anime').value=selectedAnime;$('episode-id').value='';$('episode-form-title').textContent='Tambah Episode';$('episode-upload-progress').textContent='';
   }
   function populateAnimeOptions(){
+    const options='<option value="">Pilih anime...</option>'+rows.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.title)+'</option>').join('');
     const select=$('episode-anime'),previous=select.value;
-    select.innerHTML='<option value="">Pilih anime...</option>'+rows.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.title)+'</option>').join('');
-    if(rows.some(a=>String(a.id)===String(previous)))select.value=previous;
+    select.innerHTML=options;if(rows.some(a=>String(a.id)===String(previous)))select.value=previous;
+    const target=$('dropbox-target-anime');
+    if(target){const targetPrevious=target.value;target.innerHTML=options;if(rows.some(a=>String(a.id)===String(targetPrevious)))target.value=targetPrevious;}
   }
   async function loadEpisodeRows(){
     populateAnimeOptions();
