@@ -186,7 +186,8 @@
     return url.href;
   }
   function resetEpisodeForm(){
-    $('episode-form').reset();$('episode-id').value='';$('episode-form-title').textContent='Tambah Episode';$('episode-upload-progress').textContent='';
+    const selectedAnime=$('episode-anime').value;
+    $('episode-form').reset();$('episode-anime').value=selectedAnime;$('episode-id').value='';$('episode-form-title').textContent='Tambah Episode';$('episode-upload-progress').textContent='';
   }
   function populateAnimeOptions(){
     const select=$('episode-anime'),previous=select.value;
