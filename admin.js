@@ -186,13 +186,6 @@
     if(!['http:','https:'].includes(url.protocol))throw new Error('URL video harus HTTP atau HTTPS.');
     return url.href;
   }
-  function normalizeEpisodeEmbedUrl(value){
-    if(!value)return null;
-    const url=new URL(value);
-    if(url.protocol!=='https:')throw new Error('URL iframe/embed wajib menggunakan HTTPS.');
-    if(url.hostname==='drive.google.com'||url.hostname.endsWith('.drive.google.com'))throw new Error('Google Drive tidak didukung.');
-    return url.href;
-  }
   function resetEpisodeForm(){
     const selectedAnime=$('episode-anime').value;
     $('episode-form').reset();$('episode-anime').value=selectedAnime;$('episode-id').value='';$('episode-form-title').textContent='Tambah Episode';$('episode-upload-progress').textContent='';
@@ -210,13 +203,13 @@
     const {data,error}=await db.from('episodes').select('*').eq('anime_id',animeId).order('episode_number',{ascending:true});
     if(error){$('episode-list').textContent='Gagal memuat episode: '+error.message+' Pastikan SQL pembaruan tabel episodes sudah dijalankan.';return;}
     episodeRows=data||[];
-    $('episode-list').innerHTML=episodeRows.length?episodeRows.map(ep=>'<div class="admin-item"><div class="admin-item-info"><strong>Episode '+esc(ep.episode_number)+' — '+esc(ep.title||'Tanpa judul')+'</strong><small class="muted">'+esc(ep.embed_url||ep.video_url||'')+'</small></div><div class="admin-actions"><button class="button secondary" type="button" data-ep-edit="'+esc(ep.id)+'">Edit</button><button class="button danger" type="button" data-ep-delete="'+esc(ep.id)+'">Hapus</button></div></div>').join(''):'<p class="muted">Belum ada episode untuk anime ini. Tambahkan lewat formulir.</p>';
+    $('episode-list').innerHTML=episodeRows.length?episodeRows.map(ep=>'<div class="admin-item"><div class="admin-item-info"><strong>Episode '+esc(ep.episode_number)+' — '+esc(ep.title||'Tanpa judul')+'</strong><small class="muted">'+esc(ep.video_url||'')+'</small></div><div class="admin-actions"><button class="button secondary" type="button" data-ep-edit="'+esc(ep.id)+'">Edit</button><button class="button danger" type="button" data-ep-delete="'+esc(ep.id)+'">Hapus</button></div></div>').join(''):'<p class="muted">Belum ada episode untuk anime ini. Tambahkan lewat formulir.</p>';
     $('episode-list').querySelectorAll('[data-ep-edit]').forEach(b=>b.addEventListener('click',()=>editEpisode(b.dataset.epEdit)));
     $('episode-list').querySelectorAll('[data-ep-delete]').forEach(b=>b.addEventListener('click',()=>removeEpisode(b.dataset.epDelete)));
   }
   function editEpisode(id){
     const ep=episodeRows.find(x=>String(x.id)===String(id));if(!ep)return;
-    $('episode-id').value=ep.id;$('episode-anime').value=ep.anime_id;$('episode-number').value=ep.episode_number;$('episode-title').value=ep.title||'';$('episode-video-url').value=ep.embed_url?'':(ep.video_url||'');$('episode-embed-url').value=ep.embed_url||'';
+    $('episode-id').value=ep.id;$('episode-anime').value=ep.anime_id;$('episode-number').value=ep.episode_number;$('episode-title').value=ep.title||'';$('episode-video-url').value=ep.video_url||'';
     $('episode-form-title').textContent='Edit Episode';episodeMessage('Ubah data lalu tekan Simpan Episode.');$('episode-form').scrollIntoView({behavior:'smooth',block:'start'});
   }
   async function removeEpisode(id){
@@ -235,13 +228,11 @@
     const button=$('episode-form').querySelector('[type=submit]');button.disabled=true;episodeMessage('Menyimpan episode...');
     try{
       let videoUrl=normalizeEpisodeVideoUrl($('episode-video-url').value.trim());
-      let embedUrl=normalizeEpisodeEmbedUrl($('episode-embed-url').value.trim());
-      const file=$('episode-video-file').files[0];if(file){videoUrl=await uploadVideo(file);embedUrl=null;}
-      if(embedUrl)videoUrl=embedUrl;
-      if(!videoUrl)throw new Error('Masukkan URL video, URL iframe/embed, atau pilih file video.');
+      const file=$('episode-video-file').files[0];if(file)videoUrl=await uploadVideo(file);
+      if(!videoUrl)throw new Error('Masukkan link Dropbox/URL video atau pilih file video untuk di-upload.');
       const number=Number($('episode-number').value);
       if(!Number.isInteger(number)||number<1)throw new Error('Nomor episode harus bilangan bulat minimal 1.');
-      const payload={anime_id:Number(animeId),episode_number:number,title:$('episode-title').value.trim()||('Episode '+number),video_url:videoUrl,embed_url:embedUrl,drive_file_id:null};
+      const payload={anime_id:Number(animeId),episode_number:number,title:$('episode-title').value.trim()||('Episode '+number),video_url:videoUrl,drive_file_id:null};
       const id=$('episode-id').value;
       const result=id?await db.from('episodes').update(payload).eq('id',id):await db.from('episodes').insert(payload);
       if(result.error)throw result.error;
